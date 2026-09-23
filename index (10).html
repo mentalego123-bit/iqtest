@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<title>IQ Level Uz — IQ Test va Reyting</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧠</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore-compat.js"></script>
+<style>
+  :root{
+    --bg:#060810; --panel:#0d1120; --panel2:#111728; --border:rgba(255,255,255,.08);
+    --cyan:#00d2ff; --amber:#f59e0b; --white:#f1f5f9; --muted:#8891a8; --danger:#ef4444; --good:#22c55e;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{
+    margin:0; background:var(--bg); color:var(--white);
+    font-family:'Plus Jakarta Sans',system-ui,sans-serif;
+    background-image:
+      radial-gradient(circle 600px at 10% 10%, rgba(0,210,255,.15), transparent 70%),
+      radial-gradient(circle 550px at 90% 15%, rgba(245,158,11,.16), transparent 70%),
+      radial-gradient(circle 500px at 20% 85%, rgba(14,165,233,.13), transparent 70%),
+      radial-gradient(circle 550px at 85% 90%, rgba(234,179,8,.14), transparent 70%);
+    background-attachment:fixed;
+    padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+    min-height:100%;
+  }
+  .font-d{font-family:'Orbitron',sans-serif;}
+  #app{max-width:520px; margin:0 auto; min-height:100vh; display:flex; flex-direction:column; padding:18px 16px 100px;}
+  .card{background:linear-gradient(180deg,var(--panel),var(--panel2)); border:1px solid var(--border); border-radius:18px; padding:20px;}
+  .btn{display:flex; align-items:center; justify-content:center; gap:8px; border:none; border-radius:14px; padding:14px 18px; font-weight:700; font-size:15px; cursor:pointer; transition:.15s; width:100%;}
+  .btn:active{transform:scale(.97);}
+  .btn-primary{background:linear-gradient(90deg,var(--cyan),#0ea5e9); color:#00121a; box-shadow:0 6px 24px rgba(0,210,255,.25);}
+  .btn-amber{background:linear-gradient(90deg,var(--amber),#eab308); color:#1a1200; box-shadow:0 6px 24px rgba(245,158,11,.25);}
+  .btn-ghost{background:rgba(255,255,255,.05); color:var(--white); border:1px solid var(--border);}
+  .btn-danger{background:rgba(239,68,68,.15); color:#fca5a5; border:1px solid rgba(239,68,68,.35);}
+  .btn:disabled{opacity:.4; cursor:not-allowed;}
+  input,textarea{width:100%; background:rgba(255,255,255,.05); border:1px solid var(--border); border-radius:12px; padding:14px; color:var(--white); font-size:15px; font-family:inherit;}
+  input:focus,textarea:focus{outline:none; border-color:var(--cyan);}
+  .muted{color:var(--muted);}
+  .center{text-align:center;}
+  .row{display:flex; align-items:center; gap:10px;}
+  .between{justify-content:space-between;}
+  .wrap{display:flex; flex-wrap:wrap; gap:8px;}
+  .grow{flex:1;}
+  .badge{display:inline-flex; align-items:center; gap:6px; background:rgba(0,210,255,.1); border:1px solid rgba(0,210,255,.3); color:var(--cyan); padding:4px 10px; border-radius:999px; font-size:12px; font-weight:700;}
+  .avatar-btn{font-size:28px; width:56px; height:56px; border-radius:14px; background:rgba(255,255,255,.05); border:2px solid var(--border); display:flex; align-items:center; justify-content:center; cursor:pointer;}
+  .avatar-btn.sel{border-color:var(--cyan); background:rgba(0,210,255,.12);}
+  .opt{width:100%; text-align:left; padding:14px 16px; border-radius:14px; border:2px solid var(--border); background:rgba(255,255,255,.04); color:var(--white); font-size:15px; cursor:pointer; margin-bottom:10px;}
+  .opt.sel{border-color:var(--cyan); background:rgba(0,210,255,.1);}
+  .opt.correct{border-color:var(--good); background:rgba(34,197,94,.15);}
+  .opt.wrong{border-color:var(--danger); background:rgba(239,68,68,.15);}
+  .bar-bg{width:100%; height:8px; background:rgba(255,255,255,.08); border-radius:99px; overflow:hidden;}
+  .bar-fill{height:100%; background:linear-gradient(90deg,var(--cyan),var(--amber)); transition:width .3s;}
+  .nav{position:fixed; bottom:0; left:0; right:0; background:rgba(6,8,16,.92); backdrop-filter:blur(14px); border-top:1px solid var(--border); padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px)); z-index:40;}
+  .nav-inner{max-width:520px; margin:0 auto; display:flex; justify-content:space-around;}
+  .nav-btn{background:none; border:none; color:var(--muted); display:flex; flex-direction:column; align-items:center; gap:4px; font-size:11px; font-weight:600; cursor:pointer; padding:4px 8px;}
+  .nav-btn.active{color:var(--cyan);}
+  .nav-ic{font-size:20px;}
+  .toast{position:fixed; top:calc(14px + env(safe-area-inset-top,0px)); left:50%; transform:translateX(-50%); max-width:460px; width:calc(100% - 32px); background:linear-gradient(135deg,#0ea5e9,#7c3aed); color:#fff; padding:14px 18px; border-radius:16px; box-shadow:0 12px 40px rgba(0,0,0,.4); z-index:100; animation:slideDown .3s ease;}
+  @keyframes slideDown{from{transform:translate(-50%,-30px);opacity:0;} to{transform:translate(-50%,0);opacity:1;}}
+  .lb-row{display:flex; align-items:center; gap:12px; padding:12px; border-radius:14px; margin-bottom:8px; background:rgba(255,255,255,.03); border:1px solid var(--border);}
+  .lb-row.me{border-color:var(--cyan); background:rgba(0,210,255,.08);}
+  .rank-num{width:30px; text-align:center; font-weight:800; font-family:'Orbitron',sans-serif;}
+  .modal-bg{position:fixed; inset:0; background:rgba(0,0,0,.7); display:flex; align-items:center; justify-content:center; z-index:90; padding:20px;}
+  .spin{width:44px; height:44px; border:4px solid rgba(0,210,255,.2); border-top-color:var(--cyan); border-radius:50%; animation:sp 1s linear infinite; margin:0 auto;}
+  @keyframes sp{to{transform:rotate(360deg);}}
+  .logo-tap{cursor:pointer; user-select:none;}
+  ::-webkit-scrollbar{width:0px;}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+/* =========================================================
+   ⚙️ FIREBASE SOZLAMALARI
+   ========================================================= */
+const firebaseConfig = {
+  apiKey: "AIzaSyBkOiZ_XXSZE_OJCOlbZw5Cvnu6xlarIh4",
+  authDomain: "iqbot-c1b8c.firebaseapp.com",
+  projectId: "iqbot-c1b8c",
+  storageBucket: "iqbot-c1b8c.firebasestorage.app",
+  messagingSenderId: "1072747237634",
+  appId: "1:1072747237634:web:0ab5c888ef04024696b21b"
+};
+firebase.initializeApp(firebaseConfig);
+const dbfs = firebase.firestore();
+const FV = firebase.firestore.FieldValue;
+
+const BOT_USERNAME = "IQLevelUz_bot"; // Telegram bot username (@ belgisisiz)
+const ADMIN_CODE = "20120517M";       // Admin panelga kirish kodi
+
+/* =========================================================
+   🧠 20 TA HAQIQIY IQ TEST SAVOLI (loyihangizdan olindi)
+   ========================================================= */
+const QUESTIONS = [{"id":"q-1","category":"Mantiq","difficulty":"Oson","question":"Ketma-ketlikdagi bo'sh o'rinni to'ldiring: 2, 6, 12, 20, 30, ?","options":["38","40","42","44"],"correctIndex":2,"explanation":"Ketma-ketlikdagi farqlar 2 ga oshib bormoqda: +4, +6, +8, +10, +12. Demak, 30 + 12 = 42 (yoki n*(n+1) formulasi: 1*2, 2*3, 3*4, 4*5, 5*6, 6*7=42)."},{"id":"q-2","category":"Visual","difficulty":"O'rta","svgType":"matrix3x3","question":"3x3 matritsadagi so'roq belgisi (?) o'rnidagi shakl qaysi mantiqqa mos keladi? (Har bir qatorda chiziqlar soni yig'indisi o'zgarmas)","options":["3 ta gorizontal va 1 ta vertikal chiziq","2 ta gorizontal va 2 ta vertikal chiziq","Faqat bitta diagonal chiziq","To'liq aylana ichidagi 4 ta nuqta"],"correctIndex":1,"explanation":"Har bir gorizontal qatorda vertikal va gorizontal chiziqlar sonining umumiy yig'indisi har doim 6 taga teng bo'ladi."},{"id":"q-3","category":"Matematik","difficulty":"O'rta","question":"Agar 5 ta mashina 5 daqiqada 5 ta detal yasasa, 100 ta mashina 100 ta detalni necha daqiqada yasaydi?","options":["100 daqiqa","50 daqiqa","20 daqiqa","5 daqiqa"],"correctIndex":3,"explanation":"1 ta mashina 1 ta detalni yasash uchun 5 daqiqa sarflaydi. Demak, 100 ta mashina parallel ravishda 100 ta detalni ham xuddi shunday 5 daqiqada yasaydi."},{"id":"q-4","category":"Mantiq","difficulty":"Oson","question":"Kitob : O'qimoq :: Gitara : ?","options":["Tinglamoq","Chertmoq / Chalmoq","Musiqa","Sim"],"correctIndex":1,"explanation":"Kitob unga nisbatan qilinadigan asosiy harakat bilan bog'langan (kitob o'qiladi). Xuddi shunday gitara chalinadi."},{"id":"q-5","category":"Visual","difficulty":"Qiyin","svgType":"shapes","question":"Quyidagi ketma-ketlikda burchaklar soni: Uchburchak (3), Kvadrat (4), Beshburchak (5), Oltiburchak (6). Keyingi element qaysi?","options":["Yettiburchak (7 burchak)","Sakkizburchak (8 burchak)","Yulduz shakli","Doira (0 burchak)"],"correctIndex":0,"explanation":"Shakllardagi burchaklar soni ketma-ket 1 taga oshib bormoqda: 3 -> 4 -> 5 -> 6 -> 7 (Yettiburchak / Heptagon)."},{"id":"q-6","category":"Matematik","difficulty":"O'rta","question":"Uchta ketma-ket toq sonlarning yig'indisi 57 ga teng. Eng katta sonni toping.","options":["17","19","21","23"],"correctIndex":2,"explanation":"O'rtadagi son: 57 / 3 = 19. Ketma-ket toq sonlar: 17, 19, 21. Demak eng kattasi 21."},{"id":"q-7","category":"Fazoviy","difficulty":"Qiyin","svgType":"cube","question":"Kvadrat qog'oz yoyilmasida qarama-qarshi tomonlar yig'indisi 7 ga teng bo'lishi kerak. 3 raqamiga qarama-qarshi yuzada qaysi son bo'ladi?","options":["2","4","5","6"],"correctIndex":1,"explanation":"Standart zar qoidasiga ko'ra qarama-qarshi tomonlar yig'indisi 7: 7 - 3 = 4 bo'ladi."},{"id":"q-8","category":"Mantiq","difficulty":"O'rta","question":"Barcha atirgullar guldir. Ba'zi gullar tez so'liydi. Demak:","options":["Barcha atirgullar tez so'liydi","Hech qaysi atirgul so'limaydi","Ba'zi atirgullar tez so'lishi mumkin","Faqat atirgullar tez so'liydi"],"correctIndex":2,"explanation":"Mantiqiy sillogizm: 'Ba'zi gullar' to'plamiga atirgullar ham kirishi mumkin, shuning uchun ba'zi atirgullar tez so'lishi ehtimoli to'g'ri."},{"id":"q-9","category":"Matematik","difficulty":"Qiyin","question":"Sonlar mantiqi: 3 -> 8, 4 -> 15, 5 -> 24, 7 -> ?","options":["45","48","50","52"],"correctIndex":1,"explanation":"Qoida: n² - 1. (3² - 1 = 8; 4² - 1 = 15; 5² - 1 = 24; demak 7² - 1 = 49 - 1 = 48)."},{"id":"q-10","category":"Visual","difficulty":"O'rta","svgType":"patternSeries","question":"Soat mili har bir qadamda 45 gradus soat yo'nalishi bo'ylab burilmoqda. 12:00 dan boshlab 5 marta burilgach, soat mili qaysi yo'nalishni ko'rsatadi?","options":["Janubiy-Sharq (135°)","Janubiy-G'arb (225°)","G'arb (270°)","Shimoliy-G'arb (315°)"],"correctIndex":1,"explanation":"5 * 45° = 225°. 12:00 (0°) dan 225° soat yo'nalishida burilish Janubiy-G'arb yo'nalishini (7:30 pozitsiyasi) ko'rsatadi."},{"id":"q-11","category":"Mantiq","difficulty":"Oson","question":"Otaning yoshi 36 da, o'g'lining yoshi 10 da. Necha yildan keyin ota o'g'lidan 2 baravar katta bo'ladi?","options":["12 yil","14 yil","16 yil","18 yil"],"correctIndex":2,"explanation":"Ota va o'g'il o'rtasidagi yosh farqi har doim 26 yil (36 - 10 = 26). Ota o'g'lidan 2 baravar katta bo'lganda, o'g'il 26 yoshda, ota esa 52 yoshda bo'ladi. 26 - 10 = 16 yildan keyin."},{"id":"q-12","category":"Matematik","difficulty":"O'rta","question":"Ketma-ketlikdagi qonuniyatni toping: 1, 1, 2, 3, 5, 8, 13, ?","options":["18","21","24","26"],"correctIndex":1,"explanation":"Fibonachchi qatori: har bir keyingi son oldingi ikki sonning yig'indisiga teng (8 + 13 = 21)."},{"id":"q-13","category":"Visual","difficulty":"Qiyin","svgType":"matrix3x3","question":"Qora va oq katakchalar shaxmat tartibida almashmoqda. 4x4 doskada nechta qora va nechta oq katakcha bor?","options":["8 qora, 8 oq","9 qora, 7 oq","10 qora, 6 oq","7 qora, 9 oq"],"correctIndex":0,"explanation":"4x4 doskada jami 16 ta katakcha bor. Shaxmat tartibida ular teng bo'linadi: 16 / 2 = 8 ta qora va 8 ta oq."},{"id":"q-14","category":"Fazoviy","difficulty":"Qiyin","question":"Bir poyezd 120 km/soat tezlikda harakatlanmoqda. U 1 km uzunlikdagi tunneldan to'liq chiqib ketishi uchun (poyezd uzunligi 500 m) necha soniya kerak?","options":["30 soniya","45 soniya","60 soniya","75 soniya"],"correctIndex":1,"explanation":"Umumiy bosib o'tish kerak bo'lgan masofa = tunnel uzunligi + poyezd uzunligi = 1000m + 500m = 1500 metr (1.5 km). Tezlik = 120 km/soat = 120 * 1000 / 3600 = 33.33 m/s. Vaqt = 1500 / 33.33 = 45 soniya."},{"id":"q-15","category":"Mantiq","difficulty":"O'rta","question":"Agar barcha X lar Y bo'lsa va barcha Y lar Z bo'lsa, quyidagilardan qaysi biri qat'iy to'g'ri?","options":["Barcha Z lar X dir","Barcha X lar Z dir","Ba'zi Z lar faqat Y dir","Hech qaysi X Z emas"],"correctIndex":1,"explanation":"Tranzitivlik qoidasi: X ⊂ Y va Y ⊂ Z bo'lsa, albatta X ⊂ Z (barcha X lar Z to'plamiga tegishli)."},{"id":"q-16","category":"Matematik","difficulty":"Oson","question":"Bir shisha idish va uning qopqog'i birgalikda 1 dollar 10 sent turadi. Idish qopqoqdan 1 dollar qimmat. Qopqoq narxi qancha?","options":["10 sent","5 sent","1 sent","15 sent"],"correctIndex":1,"explanation":"Idish narxi x + 1.00, qopqoq x. x + (x + 1.00) = 1.10 => 2x = 0.10 => x = 0.05 dollar (5 sent)."},{"id":"q-17","category":"Fazoviy","difficulty":"O'rta","question":"Bir kubikning 6 ta tomoni qizil rangga bo'yaldi va u 27 ta kichik teng kubchalarga bo'lindi. Nechta kichik kubchaning hech qaysi tomoni bo'yalmagan?","options":["0 ta","1 ta","6 ta","8 ta"],"correctIndex":1,"explanation":"3x3x3 kubda faqat eng markaziy, ichki 1 ta kubchaning hech qanday tashqi tomoni bo'yalmaydi ((3-2)³ = 1)."},{"id":"q-18","category":"Visual","difficulty":"O'rta","svgType":"shapes","question":"Ko'zgu aks ettirish mantiqi: Gorizontal o'q bo'yicha akslantirilganda qaysi harf shakli o'zgarmay qoladi?","options":["A","E","M","T"],"correctIndex":1,"explanation":"E harfi gorizontal simmetriya o'qiga ega bo'lib, yuqori va pastki qismi bir xil bo'lgani sababli gorizontal ko'zguda o'zgarmaydi. A, M, T esa vertikal simmetriyaga ega."},{"id":"q-19","category":"Mantiq","difficulty":"Qiyin","question":"To'rtta kishi (Ali, Vali, G'ani, Botir) poygada qatnashdi. Ali birinchi emas, Vali esa Botirdan keyin, G'ani esa Validan oldin keldi. Birinchi bo'lib kim keldi?","options":["Ali","Vali","G'ani","Botir"],"correctIndex":3,"explanation":"Ali 1-emas. Vali Botirdan keyin keldi (Botir > Vali). G'ani Validan oldin keldi. Demak, Botir eng birinchi marraga yetib kelgan!"},{"id":"q-20","category":"Matematik","difficulty":"Qiyin","question":"Ketma-ketlik: 3, 5, 9, 17, 33, ?","options":["49","65","67","71"],"correctIndex":1,"explanation":"Har bir son 2 ga ko'paytirilib, 1 ayirilmoqda: 3*2-1=5, 5*2-1=9, 9*2-1=17, 17*2-1=33, 33*2-1 = 65. (Yoki farqlar: +2, +4, +8, +16, +32)."}];
+
+/* =========================================================
+   🗄 DEVICE / FOYDALANUVCHI IDENTIFIKATORI
+   ========================================================= */
+function uuid(){
+  return 'u-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2,10);
+}
+let UID = localStorage.getItem('iq_uid');
+if(!UID){ UID = uuid(); localStorage.setItem('iq_uid', UID); }
+
+const params = new URLSearchParams(location.search);
+const REF_UID = params.get('ref');
+
+/* =========================================================
+   🔄 GLOBAL STATE
+   ========================================================= */
+const state = {
+  screen: 'loading',
+  profile: null,
+  usersMap: {},          // barcha foydalanuvchilar (realtime)
+  usersLoaded: false,
+  latestBroadcast: null,
+  broadcastReady: false,
+  isAdmin: false,
+  logoTaps: [],
+  test: null,
+  lastResult: null,
+};
+
+function $(sel){ return document.querySelector(sel); }
+function render(){ $('#app').innerHTML = screens[state.screen](); afterRender(); }
+function go(screen){ state.screen = screen; render(); window.scrollTo(0,0); }
+
+/* =========================================================
+   🔥 FIRESTORE: FOYDALANUVCHI PROFILI
+   ========================================================= */
+const usersCol = dbfs.collection('users');
+const broadcastsCol = dbfs.collection('broadcasts');
+
+function myDoc(){ return usersCol.doc(UID); }
+
+function initApp(){
+  // 1) Barcha foydalanuvchilarni realtime tinglash (leaderboard, statistikalar, admin uchun)
+  usersCol.onSnapshot((snap) => {
+    const map = {};
+    snap.forEach(doc => { map[doc.id] = doc.data(); });
+    state.usersMap = map;
+    state.usersLoaded = true;
+
+    const me = map[UID];
+    if(me){
+      state.profile = { id: UID, ...me };
+      if(me.isBanned){ state.screen = 'banned'; }
+      else if(state.screen === 'loading' || state.screen === 'register'){
+        state.screen = 'home';
+      }
+    } else if(state.screen === 'loading'){
+      state.screen = 'register';
+    }
+    render();
+  }, (err) => {
+    console.error('Firestore xatoligi:', err);
+    state.screen = 'db_error';
+    state.dbError = err.message || String(err);
+    render();
+  });
+
+  // 2) So'nggi broadcast xabarni realtime tinglash — hammaga shu zahoti yetkazish
+  broadcastsCol.orderBy('ts','desc').limit(1).onSnapshot((snap) => {
+    if(snap.empty){ state.broadcastReady = true; return; }
+    const doc = snap.docs[0];
+    const data = doc.data();
+    const lastSeen = localStorage.getItem('iq_last_broadcast_id');
+    state.latestBroadcast = data;
+    if(state.broadcastReady && lastSeen !== doc.id){
+      showToast(data.text);
+    }
+    localStorage.setItem('iq_last_broadcast_id', doc.id);
+    state.broadcastReady = true;
+    if(state.screen === 'home') render();
+  }, (err) => console.error('Broadcast xatoligi:', err));
+}
+
+function showToast(text){
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.innerHTML = `<div style="font-weight:800; font-size:12px; opacity:.8; margin-bottom:4px;">📢 YANGI E'LON</div><div style="font-weight:600; line-height:1.4;">${escapeHtml(text)}</div>`;
+  document.body.appendChild(el);
+  setTimeout(() => { el.style.transition='.4s'; el.style.opacity='0'; el.style.transform='translate(-50%,-20px)'; setTimeout(()=>el.remove(),400); }, 7000);
+}
+
+function escapeHtml(s){
+  const d = document.createElement('div'); d.innerText = s ?? ''; return d.innerHTML;
+}
+
+/* =========================================================
+   📝 RO'YXATDAN O'TISH
+   ========================================================= */
+const AVATARS = ['🧠','👑','⚡','🚀','🎯','💎'];
+let regAvatar = '🧠';
+
+async function submitRegister(e){
+  e.preventDefault();
+  const nameInput = $('#regName');
+  const name = (nameInput.value || '').trim();
+  const errEl = $('#regErr');
+  if(name.length < 2){ errEl.textContent = "Ism kamida 2 ta belgidan iborat bo'lishi kerak!"; return; }
+
+  $('#regSubmitBtn').disabled = true;
+  $('#regSubmitBtn').textContent = 'Yuborilmoqda...';
+
+  const profile = {
+    name, avatar: regAvatar,
+    iqScore: 0, bestIq: 0,
+    completedTestsCount: 0,
+    referralsCount: 0,
+    referredBy: (REF_UID && REF_UID !== UID) ? REF_UID : null,
+    isBanned: false,
+    joinedAt: FV.serverTimestamp(),
+    joinedAtLocal: new Date().toISOString(),
+  };
+
+  try{
+    await myDoc().set(profile);
+    if(profile.referredBy){
+      usersCol.doc(profile.referredBy).update({ referralsCount: FV.increment(1) }).catch(()=>{});
+    }
+    go('home');
+  }catch(err){
+    errEl.textContent = "Xatolik: " + (err.message || err);
+    $('#regSubmitBtn').disabled = false;
+    $('#regSubmitBtn').textContent = "Boshlash 🚀";
+  }
+}
+
+function selectAvatar(a){
+  regAvatar = a;
+  document.querySelectorAll('.avatar-btn').forEach(b => b.classList.toggle('sel', b.dataset.a === a));
+}
+
+/* =========================================================
+   🧠 IQ TEST
+   ========================================================= */
+let timerId = null;
+
+function startTest(){
+  state.test = { index: 0, answers: {}, startTime: Date.now(), timeLeft: 45, finished:false };
+  go('test');
+  runTimer();
+}
+
+function runTimer(){
+  clearInterval(timerId);
+  timerId = setInterval(() => {
+    if(!state.test || state.screen !== 'test') { clearInterval(timerId); return; }
+    state.test.timeLeft -= 1;
+    if(state.test.timeLeft <= 0){
+      nextQuestion();
+    } else {
+      const tEl = $('#timeLeft');
+      if(tEl) tEl.textContent = state.test.timeLeft + 's';
+      const barEl = $('#timeBar');
+      if(barEl) barEl.style.width = (state.test.timeLeft/45*100) + '%';
+    }
+  }, 1000);
+}
+
+function selectOption(qIndex, optIndex){
+  state.test.answers[qIndex] = optIndex;
+  render();
+}
+
+function nextQuestion(){
+  clearInterval(timerId);
+  const t = state.test;
+  if(t.index < QUESTIONS.length - 1){
+    t.index += 1;
+    t.timeLeft = 45;
+    render();
+    runTimer();
+  } else {
+    finishTest();
+  }
+}
+function prevExists(){ return state.test.index > 0; }
+
+async function finishTest(){
+  clearInterval(timerId);
+  const t = state.test;
+  let correct = 0;
+  QUESTIONS.forEach((q, i) => { if(t.answers[i] === q.correctIndex) correct++; });
+  const accuracy = correct / QUESTIONS.length;
+  let score = Math.round(85 + accuracy * 65);
+  const elapsedSec = (Date.now() - t.startTime) / 1000;
+  const avgTimePerQ = elapsedSec / QUESTIONS.length;
+  if(avgTimePerQ < 20 && correct >= 14) score += 4;
+  score = Math.min(156, Math.max(85, score));
+
+  state.lastResult = { score, correct, total: QUESTIONS.length };
+  t.finished = true;
+
+  const cur = state.profile || {};
+  const newBest = Math.max(cur.bestIq || 0, score);
+  try{
+    await myDoc().update({
+      iqScore: score,
+      bestIq: newBest,
+      completedTestsCount: FV.increment(1),
+      lastTestAt: FV.serverTimestamp(),
+    });
+  }catch(err){ console.error(err); }
+
+  go('result');
+}
+
+function iqCategory(score){
+  if(score >= 130) return { label: "O'ta yuqori intellekt (Daho)", emoji: "🌟" };
+  if(score >= 115) return { label: "Yuqori daraja", emoji: "📈" };
+  if(score >= 100) return { label: "O'rtachadan yuqori", emoji: "👍" };
+  return { label: "Yaxshi natija — yana urinib ko'ring!", emoji: "💪" };
+}
+
+/* =========================================================
+   🏆 SERTIFIKAT (CANVAS)
+   ========================================================= */
+function drawCertificate(){
+  const canvas = $('#certCanvas');
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+
+  const grad = ctx.createLinearGradient(0,0,W,H);
+  grad.addColorStop(0, '#060810'); grad.addColorStop(1, '#0d1120');
+  ctx.fillStyle = grad; ctx.fillRect(0,0,W,H);
+
+  ctx.strokeStyle = '#00d2ff'; ctx.lineWidth = 4;
+  ctx.strokeRect(24,24,W-48,H-48);
+  ctx.strokeStyle = 'rgba(245,158,11,.6)'; ctx.lineWidth = 1.5;
+  ctx.strokeRect(36,36,W-72,H-72);
+
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#f59e0b';
+  ctx.font = '800 22px Orbitron, sans-serif';
+  ctx.fillText('IQ LEVEL UZ', W/2, 100);
+  ctx.fillStyle = '#8891a8';
+  ctx.font = '600 15px sans-serif';
+  ctx.fillText('RASMIY SERTIFIKAT', W/2, 128);
+
+  ctx.fillStyle = '#f1f5f9';
+  ctx.font = '700 30px sans-serif';
+  const name = (state.profile && state.profile.name) || 'Foydalanuvchi';
+  ctx.fillText(name, W/2, 210);
+
+  const r = state.lastResult || { score: 0 };
+  ctx.fillStyle = '#00d2ff';
+  ctx.font = '800 90px Orbitron, sans-serif';
+  ctx.fillText(String(r.score), W/2, 330);
+  ctx.fillStyle = '#8891a8';
+  ctx.font = '600 16px sans-serif';
+  ctx.fillText('IQ BALL', W/2, 360);
+
+  const cat = iqCategory(r.score);
+  ctx.fillStyle = '#f59e0b';
+  ctx.font = '700 20px sans-serif';
+  ctx.fillText(cat.emoji + '  ' + cat.label, W/2, 410);
+
+  ctx.fillStyle = '#8891a8';
+  ctx.font = '500 14px sans-serif';
+  ctx.fillText(new Date().toLocaleDateString('uz-UZ'), W/2, H - 50);
+}
+
+function downloadCertificate(){
+  drawCertificate();
+  const canvas = $('#certCanvas');
+  const link = document.createElement('a');
+  link.download = 'IQ-Level-Uz-Sertifikat.png';
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+}
+
+/* =========================================================
+   👥 REFERAL
+   ========================================================= */
+function referralLink(){
+  const base = location.origin + location.pathname;
+  return base + '?ref=' + UID;
+}
+function copyReferral(){
+  navigator.clipboard.writeText(referralLink()).then(() => {
+    const el = $('#copyStatus'); if(el){ el.textContent = '✅ Nusxalandi!'; setTimeout(()=>{ if(el) el.textContent=''; }, 2000); }
+  });
+}
+
+/* =========================================================
+   ⚙️ ADMIN
+   ========================================================= */
+function tapLogo(){
+  const now = Date.now();
+  state.logoTaps = state.logoTaps.filter(t => now - t < 2500);
+  state.logoTaps.push(now);
+  if(state.logoTaps.length >= 6){
+    state.logoTaps = [];
+    go('admin_gate');
+  }
+}
+
+function submitAdminCode(e){
+  e.preventDefault();
+  const code = $('#adminCodeInput').value;
+  if(code === ADMIN_CODE){ state.isAdmin = true; go('admin'); }
+  else { $('#adminGateErr').textContent = "❌ Kod noto'g'ri!"; }
+}
+
+async function sendBroadcast(){
+  const ta = $('#broadcastText');
+  const text = (ta.value || '').trim();
+  if(!text) return;
+  const btn = $('#sendBroadcastBtn');
+  btn.disabled = true; btn.textContent = 'Yuborilmoqda...';
+  try{
+    await broadcastsCol.add({ text, ts: FV.serverTimestamp() });
+    ta.value = '';
+    $('#broadcastStatus').textContent = '✅ Barcha foydalanuvchilarga yuborildi!';
+    setTimeout(() => { const s=$('#broadcastStatus'); if(s) s.textContent=''; }, 3000);
+  }catch(err){
+    $('#broadcastStatus').textContent = '❌ Xatolik: ' + err.message;
+  }
+  btn.disabled = false; btn.textContent = "📣 Hammaga yuborish";
+}
+
+function toggleBan(userId, current){
+  usersCol.doc(userId).update({ isBanned: !current }).catch(err => alert('Xatolik: ' + err.message));
+}
+
+/* =========================================================
+   🖼 EKRANLAR (SCREENS)
+   ========================================================= */
+const screens = {};
+
+screens.loading = () => `
+  <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:80vh; gap:18px;">
+    <div style="font-size:56px;">🧠</div>
+    <div class="font-d" style="font-size:20px; letter-spacing:2px; color:var(--cyan);">IQ LEVEL UZ</div>
+    <div class="spin"></div>
+    <div class="muted" style="font-size:13px;">Ma'lumotlar bazasiga ulanmoqda...</div>
+  </div>
+`;
+
+screens.db_error = () => `
+  <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:80vh; gap:14px; text-align:center;">
+    <div style="font-size:48px;">⚠️</div>
+    <div class="font-d" style="font-size:18px;">Bazaga ulanib bo'lmadi</div>
+    <div class="muted" style="font-size:13px; max-width:340px;">${escapeHtml(state.dbError || '')}</div>
+    <div class="muted" style="font-size:13px; max-width:340px;">Firebase konsolida <b>Firestore Database</b> yaratilganini va xavfsizlik qoidalari (rules) o'qish/yozishga ruxsat berishini tekshiring.</div>
+  </div>
+`;
+
+screens.banned = () => `
+  <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:80vh; gap:14px; text-align:center;">
+    <div style="font-size:48px;">🚫</div>
+    <div class="font-d" style="font-size:18px;">Siz bloklangansiz</div>
+    <div class="muted">Botdan foydalanishdan vaqtincha cheklab qo'yilgansiz.</div>
+  </div>
+`;
+
+screens.register = () => `
+  <div style="display:flex; flex-direction:column; justify-content:center; min-height:90vh; gap:20px;">
+    <div class="center">
+      <div style="font-size:52px;">🧠</div>
+      <div class="font-d" style="font-size:22px; color:var(--cyan); letter-spacing:1px; margin-top:8px;">IQ LEVEL UZ</div>
+      <div class="muted" style="margin-top:6px; font-size:14px;">Intellektual salohiyatingizni sinang!</div>
+    </div>
+    <form class="card" onsubmit="submitRegister(event)">
+      <div class="muted" style="font-size:13px; font-weight:700; margin-bottom:8px;">ISMINGIZ</div>
+      <input id="regName" placeholder="Masalan: Aziz" maxlength="24" autocomplete="off" />
+      <div class="muted" style="font-size:13px; font-weight:700; margin:16px 0 8px;">AVATARNI TANLANG</div>
+      <div class="wrap">
+        ${AVATARS.map(a => `<div class="avatar-btn ${a===regAvatar?'sel':''}" data-a="${a}" onclick="selectAvatar('${a}')">${a}</div>`).join('')}
+      </div>
+      <div id="regErr" style="color:var(--danger); font-size:13px; margin-top:10px; min-height:16px;"></div>
+      <button id="regSubmitBtn" class="btn btn-primary" style="margin-top:10px;" type="submit">Boshlash 🚀</button>
+    </form>
+    ${REF_UID ? `<div class="center muted" style="font-size:12px;">👥 Do'stingiz taklifi orqali keldingiz</div>` : ''}
+  </div>
+`;
+
+screens.home = () => {
+  const p = state.profile || {};
+  const totalUsers = Object.keys(state.usersMap).length;
+  return `
+  <div>
+    <div class="row between" style="margin-bottom:18px;">
+      <div class="row logo-tap" onclick="tapLogo()">
+        <div style="font-size:28px;">🧠</div>
+        <div class="font-d" style="font-size:16px; color:var(--cyan);">IQ LEVEL UZ</div>
+      </div>
+      <div class="badge">👥 ${totalUsers} foydalanuvchi</div>
+    </div>
+
+    ${state.latestBroadcast ? `
+    <div class="card" style="margin-bottom:14px; border-color:rgba(245,158,11,.4); background:rgba(245,158,11,.08);">
+      <div style="font-size:12px; font-weight:800; color:var(--amber); margin-bottom:4px;">📢 SO'NGGI E'LON</div>
+      <div style="font-size:14px;">${escapeHtml(state.latestBroadcast.text)}</div>
+    </div>` : ''}
+
+    <div class="card center" style="margin-bottom:16px;">
+      <div style="font-size:44px;">${p.avatar || '🧠'}</div>
+      <div class="font-d" style="font-size:18px; margin-top:6px;">${escapeHtml(p.name || '')}</div>
+      <div class="row" style="justify-content:center; gap:24px; margin-top:16px;">
+        <div class="center"><div class="font-d" style="font-size:24px; color:var(--cyan);">${p.bestIq || 0}</div><div class="muted" style="font-size:11px;">ENG YAXSHI IQ</div></div>
+        <div class="center"><div class="font-d" style="font-size:24px; color:var(--amber);">${p.completedTestsCount || 0}</div><div class="muted" style="font-size:11px;">TESTLAR</div></div>
+        <div class="center"><div class="font-d" style="font-size:24px; color:var(--good);">${p.referralsCount || 0}</div><div class="muted" style="font-size:11px;">TAKLIFLAR</div></div>
+      </div>
+    </div>
+
+    <button class="btn btn-primary" style="margin-bottom:12px; padding:18px;" onclick="startTest()">🧠 IQ Testni Boshlash</button>
+    <div class="row" style="gap:10px; margin-bottom:12px;">
+      <button class="btn btn-ghost" onclick="go('leaderboard')">🏆 Reyting</button>
+      <button class="btn btn-ghost" onclick="go('referral')">👥 Taklif qilish</button>
+    </div>
+  </div>
+  ${bottomNav('home')}
+  `;
+};
+
+screens.test = () => {
+  const t = state.test;
+  const q = QUESTIONS[t.index];
+  const selected = t.answers[t.index];
+  return `
+  <div>
+    <div class="row between" style="margin-bottom:10px;">
+      <div class="badge">${t.index+1} / ${QUESTIONS.length}</div>
+      <div class="badge" style="color:var(--amber); border-color:rgba(245,158,11,.3); background:rgba(245,158,11,.1);" id="timeLeft">${t.timeLeft}s</div>
+    </div>
+    <div class="bar-bg" style="margin-bottom:6px;"><div class="bar-fill" id="timeBar" style="width:${t.timeLeft/45*100}%"></div></div>
+    <div class="bar-bg" style="margin-bottom:20px; opacity:.5;"><div class="bar-fill" style="width:${(t.index)/QUESTIONS.length*100}%; background:var(--cyan);"></div></div>
+
+    <div class="card" style="margin-bottom:16px;">
+      <div class="badge" style="margin-bottom:12px;">${q.category}${q.difficulty ? ' · ' + q.difficulty : ''}</div>
+      <div style="font-size:17px; font-weight:700; line-height:1.5;">${escapeHtml(q.question)}</div>
+    </div>
+
+    ${q.options.map((opt,i) => `
+      <button class="opt ${selected===i?'sel':''}" onclick="selectOption(${t.index}, ${i})">${escapeHtml(opt)}</button>
+    `).join('')}
+
+    <button class="btn btn-primary" style="margin-top:10px;" ${selected===undefined?'disabled':''} onclick="nextQuestion()">
+      ${t.index === QUESTIONS.length-1 ? "Testni yakunlash ✅" : "Keyingisi →"}
+    </button>
+  </div>
+  `;
+};
+
+screens.result = () => {
+  const r = state.lastResult || { score: 0, correct: 0, total: QUESTIONS.length };
+  const cat = iqCategory(r.score);
+  setTimeout(drawCertificate, 30);
+  return `
+  <div class="center">
+    <div class="font-d" style="font-size:18px; color:var(--cyan); margin-bottom:16px;">🎉 TEST YAKUNLANDI!</div>
+    <canvas id="certCanvas" width="600" height="800" style="width:100%; max-width:340px; border-radius:16px; margin-bottom:16px;"></canvas>
+    <div class="muted" style="margin-bottom:6px;">To'g'ri javoblar: <b style="color:var(--white)">${r.correct}/${r.total}</b></div>
+    <div class="muted" style="margin-bottom:20px;">${cat.emoji} ${cat.label}</div>
+    <button class="btn btn-amber" style="margin-bottom:10px;" onclick="downloadCertificate()">⬇️ Sertifikatni yuklab olish</button>
+    <button class="btn btn-ghost" style="margin-bottom:10px;" onclick="go('leaderboard')">🏆 Reytingni ko'rish</button>
+    <button class="btn btn-ghost" onclick="go('home')">🏠 Bosh sahifa</button>
+  </div>
+  ${bottomNav('home')}
+  `;
+};
+
+screens.leaderboard = () => {
+  const arr = Object.entries(state.usersMap)
+    .map(([id, u]) => ({ id, ...u }))
+    .filter(u => !u.isBanned)
+    .sort((a,b) => (b.bestIq||0) - (a.bestIq||0))
+    .slice(0, 50);
+  const medals = ['🥇','🥈','🥉'];
+  return `
+  <div>
+    <div class="row between" style="margin-bottom:16px;">
+      <div class="font-d" style="font-size:18px;">🏆 TOP Reyting</div>
+      <div class="badge">${arr.length} ishtirokchi</div>
+    </div>
+    ${arr.length === 0 ? `<div class="card center muted">Hozircha hech kim test topshirmagan. Birinchi bo'ling!</div>` : ''}
+    ${arr.map((u,i) => `
+      <div class="lb-row ${u.id===UID?'me':''}">
+        <div class="rank-num">${medals[i] || (i+1)}</div>
+        <div style="font-size:22px;">${u.avatar || '🧠'}</div>
+        <div class="grow">
+          <div style="font-weight:700; font-size:14px;">${escapeHtml(u.name || '')}${u.id===UID?' <span class="muted">(Siz)</span>':''}</div>
+          <div class="muted" style="font-size:11px;">${u.completedTestsCount||0} ta test</div>
+        </div>
+        <div class="font-d" style="color:var(--cyan); font-size:16px;">${u.bestIq||0}</div>
+      </div>
+    `).join('')}
+  </div>
+  ${bottomNav('leaderboard')}
+  `;
+};
+
+screens.referral = () => {
+  const p = state.profile || {};
+  const link = referralLink();
+  return `
+  <div>
+    <div class="font-d" style="font-size:18px; margin-bottom:16px;">👥 Do'stlarni taklif qilish</div>
+    <div class="card center" style="margin-bottom:16px;">
+      <div class="font-d" style="font-size:34px; color:var(--amber);">${p.referralsCount || 0}</div>
+      <div class="muted" style="font-size:12px;">TAKLIF QILINGAN DO'STLAR</div>
+    </div>
+    <div class="card" style="margin-bottom:12px;">
+      <div class="muted" style="font-size:12px; font-weight:700; margin-bottom:8px;">SIZNING HAVOLANGIZ</div>
+      <div style="word-break:break-all; font-size:13px; font-family:monospace; background:rgba(255,255,255,.05); padding:10px; border-radius:10px;">${link}</div>
+      <button class="btn btn-ghost" style="margin-top:10px;" onclick="copyReferral()">📋 Nusxalash</button>
+      <div id="copyStatus" class="center" style="font-size:12px; color:var(--good); margin-top:6px;"></div>
+    </div>
+    <a class="btn btn-primary" style="text-decoration:none;" href="https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent("IQ darajangizni sinab ko'ring! 🧠")}" target="_blank">📲 Telegram orqali ulashish</a>
+  </div>
+  ${bottomNav('referral')}
+  `;
+};
+
+screens.admin_gate = () => `
+  <div style="display:flex; flex-direction:column; justify-content:center; min-height:80vh;">
+    <form class="card" onsubmit="submitAdminCode(event)">
+      <div class="center" style="margin-bottom:16px;"><div style="font-size:40px;">🔐</div><div class="font-d" style="margin-top:8px;">Admin kirish</div></div>
+      <input id="adminCodeInput" type="password" placeholder="Maxfiy kod" autocomplete="off" />
+      <div id="adminGateErr" style="color:var(--danger); font-size:13px; margin-top:8px; min-height:16px;"></div>
+      <button class="btn btn-primary" style="margin-top:12px;" type="submit">Kirish</button>
+      <button class="btn btn-ghost" style="margin-top:10px;" type="button" onclick="go('home')">Bekor qilish</button>
+    </form>
+  </div>
+`;
+
+screens.admin = () => {
+  if(!state.isAdmin) return screens.admin_gate();
+  const users = Object.entries(state.usersMap).map(([id,u]) => ({id, ...u}));
+  const total = users.length;
+  const banned = users.filter(u => u.isBanned).length;
+  const testsCompleted = users.reduce((s,u) => s + (u.completedTestsCount||0), 0);
+  const today = new Date().toISOString().slice(0,10);
+  const todayJoined = users.filter(u => (u.joinedAtLocal||'').slice(0,10) === today).length;
+  const sorted = users.sort((a,b) => (b.joinedAtLocal||'').localeCompare(a.joinedAtLocal||''));
+
+  return `
+  <div>
+    <div class="row between" style="margin-bottom:16px;">
+      <div class="font-d" style="font-size:18px;">⚙️ ADMIN PANEL</div>
+      <button class="btn btn-ghost" style="width:auto; padding:8px 14px;" onclick="go('home')">✕</button>
+    </div>
+
+    <div class="wrap" style="margin-bottom:16px;">
+      <div class="card" style="flex:1; min-width:100px;"><div class="muted" style="font-size:11px;">JAMI</div><div class="font-d" style="font-size:20px; color:var(--cyan);">${total}</div></div>
+      <div class="card" style="flex:1; min-width:100px;"><div class="muted" style="font-size:11px;">BUGUN</div><div class="font-d" style="font-size:20px; color:var(--good);">${todayJoined}</div></div>
+      <div class="card" style="flex:1; min-width:100px;"><div class="muted" style="font-size:11px;">TESTLAR</div><div class="font-d" style="font-size:20px; color:var(--amber);">${testsCompleted}</div></div>
+      <div class="card" style="flex:1; min-width:100px;"><div class="muted" style="font-size:11px;">BAN</div><div class="font-d" style="font-size:20px; color:var(--danger);">${banned}</div></div>
+    </div>
+
+    <div class="card" style="margin-bottom:16px;">
+      <div style="font-weight:800; margin-bottom:10px;">📣 Hammaga xabar yuborish</div>
+      <textarea id="broadcastText" rows="3" placeholder="Xabar matnini yozing... (barcha foydalanuvchilarga shu zahoti yetadi)"></textarea>
+      <button id="sendBroadcastBtn" class="btn btn-amber" style="margin-top:10px;" onclick="sendBroadcast()">📣 Hammaga yuborish</button>
+      <div id="broadcastStatus" class="center" style="font-size:12px; margin-top:6px; color:var(--good);"></div>
+    </div>
+
+    <div class="card">
+      <div style="font-weight:800; margin-bottom:10px;">👥 Foydalanuvchilar (${total})</div>
+      <div style="max-height:400px; overflow-y:auto;">
+        ${sorted.slice(0,100).map(u => `
+          <div class="row between" style="padding:10px 0; border-bottom:1px solid var(--border);">
+            <div class="row" style="gap:8px;">
+              <div style="font-size:20px;">${u.avatar||'🧠'}</div>
+              <div>
+                <div style="font-size:13px; font-weight:700;">${escapeHtml(u.name||'')} ${u.isBanned?'🚫':''}</div>
+                <div class="muted" style="font-size:11px;">IQ: ${u.bestIq||0} · Testlar: ${u.completedTestsCount||0} · Takliflar: ${u.referralsCount||0}</div>
+              </div>
+            </div>
+            <button class="btn ${u.isBanned?'btn-ghost':'btn-danger'}" style="width:auto; padding:6px 12px; font-size:12px;" onclick="toggleBan('${u.id}', ${!!u.isBanned})">${u.isBanned?'Unban':'Ban'}</button>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  </div>
+  `;
+};
+
+function bottomNav(active){
+  const items = [
+    { id:'home', ic:'🏠', label:'Asosiy' },
+    { id:'leaderboard', ic:'🏆', label:'Reyting' },
+    { id:'referral', ic:'👥', label:'Taklif' },
+  ];
+  return `
+  <div class="nav"><div class="nav-inner">
+    ${items.map(it => `
+      <button class="nav-btn ${active===it.id?'active':''}" onclick="go('${it.id}')">
+        <div class="nav-ic">${it.ic}</div><div>${it.label}</div>
+      </button>
+    `).join('')}
+  </div></div>
+  `;
+}
+
+function afterRender(){
+  if(state.screen === 'test'){ /* timer already running via runTimer, restarted on startTest/nextQuestion */ }
+  if(state.screen === 'register'){ setTimeout(() => { const el = $('#regName'); if(el) el.focus(); }, 50); }
+}
+
+/* =========================================================
+   🚀 ISHGA TUSHIRISH
+   ========================================================= */
+render();
+initApp();
+</script>
+</body>
+</html>
